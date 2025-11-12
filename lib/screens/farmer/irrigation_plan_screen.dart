@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import '../../services/mqtt_service.dart';
-import '../../services/weather_service.dart';
 import '../../models/sensor_data.dart';
-import '../../models/weather_data.dart';
 import '../../theme/app_theme.dart';
 import '../../l10n/app_localizations.dart';
 
@@ -25,46 +23,14 @@ class IrrigationPlanScreen extends StatefulWidget {
 
 class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
   final MQTTService _mqttService = MQTTService();
-  final WeatherService _weatherService = WeatherService();
   SensorData? _latestSensorData;
   final List<SensorData> _sensorHistory = [];
-  WeatherData? _currentWeather;
-  bool _isLoadingWeather = true;
-  String _weatherError = '';
   late AppLocalizations _l10n;
-  ThemeData _currentTheme = AppTheme.irrigationTheme;
 
   @override
   void initState() {
     super.initState();
     _initializeMQTT();
-    _loadWeatherForLocation();
-  }
-
-  Future<void> _loadWeatherForLocation() async {
-    try {
-      setState(() {
-        _isLoadingWeather = true;
-        _weatherError = '';
-      });
-
-      print('Chargement météo pour: ${widget.location}');
-      
-      // Utiliser la localisation saisie par l'utilisateur
-      _currentWeather = await _weatherService.getWeatherByCity(widget.location);
-      
-      setState(() {
-        _isLoadingWeather = false;
-      });
-      
-      print('Météo chargée avec succès pour ${widget.location}');
-    } catch (e) {
-      print('Erreur météo: $e');
-      setState(() {
-        _isLoadingWeather = false;
-        _weatherError = 'Erreur: $e';
-      });
-    }
   }
 
   @override
@@ -119,94 +85,20 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
             const SizedBox(width: 8),
           ],
         ),
-        body: Column(
-          children: [
-            // 🌤️ Indicateur de météo
-            if (_isLoadingWeather)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                color: Colors.black.withValues(alpha: 0.05),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Chargement météo pour ${widget.location}...',
-                      style: const TextStyle(color: Colors.black87, fontSize: 12),
-                    ),
-                  ],
-                ),
-              )
-            else if (_weatherError.isNotEmpty)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                color: Colors.red.withValues(alpha: 0.1),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.error_outline, color: Colors.red, size: 16),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Erreur météo: $_weatherError',
-                        style: const TextStyle(color: Colors.red, fontSize: 12),
-                        textAlign: TextAlign.center,
-                      ),
-                    ),
-                  ],
-                ),
-              )
-            else if (_currentWeather != null)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                color: Colors.green.withValues(alpha: 0.1),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.check_circle_outline, color: Colors.green, size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Météo: ${_currentWeather!.cityName} - ${_currentWeather!.temperature.round()}°C - ${_currentWeather!.description}',
-                      style: const TextStyle(color: Colors.black87, fontSize: 12),
-                    ),
-                  ],
-                ),
-              ),
-            
-            // 📋 Contenu principal
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: widget.cropTypes.map((crop) {
-                    return _buildCropCard(crop);
-                  }).toList(),
-                ),
-              ),
-            ),
-          ],
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            children: widget.cropTypes.map((crop) {
+              return _buildCropCard(crop);
+            }).toList(),
+          ),
         ),
       ),
     );
   }
 
-  // 🪴 Carte pour chaque culture
   Widget _buildCropCard(String crop) {
-    // 🌦️ Données météo simulées
     final weatherData = _generateWeatherData();
-
-    // 🌡️ Humidité du sol depuis MQTT ou valeur par défaut (0 si cloud vide)
     int soilHumidity = _latestSensorData?.soilMoisture?.toInt() ?? 0;
 
     print(
@@ -214,7 +106,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     );
     print('BuildCropCard - soilHumidity utilisé: $soilHumidity');
 
-    // 💧 Conseil IA
     String recommendation = _getRecommendation(
       widget.soilType.toLowerCase(),
       crop.toLowerCase(),
@@ -252,7 +143,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
           ),
           const SizedBox(height: 15),
 
-          // 🔹 Tableau météo
           Column(
             children: weatherData.map((day) {
               final int rainValue = day["rain"] as int;
@@ -291,27 +181,22 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
 
           const SizedBox(height: 20),
 
-          // 🗓️ Mini calendrier d’arrosage intelligent
           _buildWateringCalendar(weatherData, crop),
 
           const SizedBox(height: 15),
 
-          // 💬 Texte explicatif
           _buildWateringExplanation(crop),
 
           const SizedBox(height: 20),
 
-          // 🌡️ Niveau d’humidité du sol depuis MQTT
           _buildSoilHumidityWidget(soilHumidity),
 
           const SizedBox(height: 10),
 
-          // 📊 Source des données
           _buildDataSourceWidget(),
 
           const SizedBox(height: 20),
 
-          // 🤖 Recommandation IA
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
@@ -334,7 +219,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     );
   }
 
-  // 🌾 Widget humidité du sol
   Widget _buildSoilHumidityWidget(int humidity) {
     Color barColor;
     String status;
@@ -394,23 +278,22 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     );
   }
 
-  // 🗓️ Calendrier d’arrosage (IA + météo)
   Widget _buildWateringCalendar(
     List<Map<String, dynamic>> weatherData,
     String crop,
   ) {
-    int wateringInterval = 2; // par défaut tous les 2 jours
+    int wateringInterval = 2;
 
     if (crop.toLowerCase().contains("olive")) {
-      wateringInterval = 7; // 1 fois/semaine
+      wateringInterval = 7;
     } else if (crop.toLowerCase().contains("blé")) {
-      wateringInterval = 1; // chaque jour
+      wateringInterval = 1;
     } else if (crop.toLowerCase().contains("tomate")) {
-      wateringInterval = 2; // tous les 2 jours
+      wateringInterval = 2;
     } else if (crop.toLowerCase().contains("fraise")) {
-      wateringInterval = 1; // chaque jour
+      wateringInterval = 1;
     } else if (crop.toLowerCase().contains("maïs")) {
-      wateringInterval = 3; // tous les 3 jours
+      wateringInterval = 3;
     }
 
     return Column(
@@ -435,9 +318,9 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
             bool shouldWater = false;
             if (!isRain) {
               if (wateringInterval == 1) {
-                shouldWater = true; // chaque jour
+                shouldWater = true;
               } else if (index % wateringInterval == 0) {
-                shouldWater = true; // selon la fréquence
+                shouldWater = true;
               }
             }
 
@@ -469,35 +352,39 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     );
   }
 
-  // 🌤️ Générer les données météo à partir de l'API réelle
   List<Map<String, dynamic>> _generateWeatherData() {
-    if (_currentWeather == null) {
-      // Données par défaut si l'API n'a pas répondu
-      return [
-        {"day": "Aujourd'hui", "temp": "${_currentWeather?.temperature ?? '22'}°", "min": "${(_currentWeather?.temperature ?? 22) - 5}°", "rain": 30},
-        {"day": "Demain", "temp": "${(_currentWeather?.temperature ?? 22) + 2}°", "min": "${(_currentWeather?.temperature ?? 22) - 3}°", "rain": 20},
-        {"day": "Après-demain", "temp": "${(_currentWeather?.temperature ?? 22) + 1}°", "min": "${(_currentWeather?.temperature ?? 22) - 4}°", "rain": 40},
-        {"day": "J+3", "temp": "${(_currentWeather?.temperature ?? 22) - 1}°", "min": "${(_currentWeather?.temperature ?? 22) - 6}°", "rain": 25},
-        {"day": "J+4", "temp": "${(_currentWeather?.temperature ?? 22)}°", "min": "${(_currentWeather?.temperature ?? 22) - 5}°", "rain": 35},
-        {"day": "J+5", "temp": "${(_currentWeather?.temperature ?? 22) + 3}°", "min": "${(_currentWeather?.temperature ?? 22) - 2}°", "rain": 15},
-      ];
-    }
-
-    // Utiliser les vraies données météo
-    final currentTemp = _currentWeather!.temperature.round();
     final random = Random();
-    
     return [
-      {"day": "monday", "temp": "$currentTemp°", "min": "${currentTemp - 5}°", "rain": _currentWeather!.humidity},
-      {"day": "tuesday", "temp": "${currentTemp + random.nextInt(5) - 2}°", "min": "${currentTemp - 3 + random.nextInt(3)}°", "rain": random.nextInt(100)},
-      {"day": "wednesday", "temp": "${currentTemp + random.nextInt(5) - 1}°", "min": "${currentTemp - 4 + random.nextInt(3)}°", "rain": random.nextInt(100)},
-      {"day": "thursday", "temp": "${currentTemp + random.nextInt(5) - 3}°", "min": "${currentTemp - 6 + random.nextInt(3)}°", "rain": random.nextInt(100)},
-      {"day": "friday", "temp": "${currentTemp + random.nextInt(5)}°", "min": "${currentTemp - 5 + random.nextInt(3)}°", "rain": random.nextInt(100)},
-      {"day": "saturday", "temp": "${currentTemp + random.nextInt(5) + 1}°", "min": "${currentTemp - 2 + random.nextInt(3)}°", "rain": random.nextInt(100)},
+      {"day": "monday", "temp": "22°", "min": "15°", "rain": random.nextInt(60)},
+      {"day": "tuesday", "temp": "24°", "min": "16°", "rain": random.nextInt(60)},
+      {
+        "day": "wednesday",
+        "temp": "25°",
+        "min": "17°",
+        "rain": random.nextInt(60),
+      },
+      {"day": "thursday", "temp": "23°", "min": "15°", "rain": random.nextInt(60)},
+      {
+        "day": "friday",
+        "temp": "21°",
+        "min": "14°",
+        "rain": random.nextInt(60),
+      },
+      {
+        "day": "saturday",
+        "temp": "22°",
+        "min": "15°",
+        "rain": random.nextInt(60),
+      },
+      {
+        "day": "sunday",
+        "temp": "24°",
+        "min": "16°",
+        "rain": random.nextInt(60),
+      },
     ];
   }
 
-  // 📅 Obtenir le nom du jour traduit
   String _getDayName(String dayKey) {
     switch (dayKey) {
       case 'monday':
@@ -519,12 +406,10 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     }
   }
 
-  // 📅 Obtenir le nom court du jour traduit
   String _getDayShortName(String dayKey) {
     return _getDayName(dayKey).substring(0, 3);
   }
 
-  // 🌱 Traduire le type de sol
   String _getSoilTypeTranslation(String soilType) {
     switch (soilType.toLowerCase()) {
       case 'sableux':
@@ -538,7 +423,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     }
   }
 
-  // 🌾 Traduire le type de culture
   String _getCropTranslation(String crop) {
     switch (crop.toLowerCase()) {
       case 'olive':
@@ -556,7 +440,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     }
   }
 
-  // 📊 Widget pour afficher la source des données
   Widget _buildDataSourceWidget() {
     final isUsingMQTTData = _latestSensorData != null;
     final lastUpdate = _latestSensorData?.timestamp;
@@ -595,7 +478,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     );
   }
 
-  // 💬 Explication du plan d'arrosage
   Widget _buildWateringExplanation(String crop) {
     String text;
     if (crop.toLowerCase().contains("olive")) {
@@ -619,7 +501,6 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     );
   }
 
-  // 💡 Recommandation IA
   String _getRecommendation(
     String soil,
     String crop,
