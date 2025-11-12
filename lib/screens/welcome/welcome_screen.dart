@@ -4,6 +4,7 @@ import '../../widgets/custom_button.dart';
 import '../enterprise/enterprise_role_screen.dart';
 import '../farmer/farmer_form_screen.dart';
 import '../../presentation/providers/language_provider.dart';
+import '../../l10n/app_localizations.dart';
 import 'dart:math';
 
 class WelcomeScreen extends ConsumerStatefulWidget {
@@ -17,6 +18,7 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  late AppLocalizations _l10n;
 
   @override
   void initState() {
@@ -27,6 +29,12 @@ class _WelcomeScreenState extends ConsumerState<WelcomeScreen>
     _animation = Tween<double>(begin: 0, end: 15).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeInOut),
     );
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = AppLocalizations.of(context)!;
   }
 
   @override

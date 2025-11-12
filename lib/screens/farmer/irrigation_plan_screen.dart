@@ -3,6 +3,7 @@ import 'dart:math';
 import '../../services/mqtt_service.dart';
 import '../../models/sensor_data.dart';
 import '../../theme/app_theme.dart';
+import '../../l10n/app_localizations.dart';
 
 class IrrigationPlanScreen extends StatefulWidget {
   final String location;
@@ -24,11 +25,19 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
   final MQTTService _mqttService = MQTTService();
   SensorData? _latestSensorData;
   final List<SensorData> _sensorHistory = [];
+  late AppLocalizations _l10n;
+  ThemeData _currentTheme = AppTheme.irrigationTheme;
 
   @override
   void initState() {
     super.initState();
     _initializeMQTT();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _l10n = AppLocalizations.of(context)!;
   }
 
   @override
@@ -56,14 +65,26 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
   @override
   Widget build(BuildContext context) {
     return Theme(
-      data: AppTheme.farmerTheme,
+      data: AppTheme.irrigationTheme,
       child: Scaffold(
         appBar: AppBar(
           centerTitle: true,
           title: Text(
-            "Plan d'arrosage - ${widget.location}",
+            "${_l10n.irrigationPlan} - ${widget.location}",
             style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.palette, color: Colors.white),
+              onPressed: () {
+                // TODO: Implémenter le changement de thème
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Changement de thème bientôt disponible")),
+                );
+              },
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
@@ -92,8 +113,8 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
 
     // 💧 Conseil IA
     String recommendation = _getRecommendation(
-      widget.soilType,
-      crop,
+      widget.soilType.toLowerCase(),
+      crop.toLowerCase(),
       weatherData,
       soilHumidity,
     );
@@ -102,18 +123,18 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
       margin: const EdgeInsets.only(bottom: 25),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: 0.1),
+        color: const Color(0xFF1A1A1A),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.black.withValues(alpha: 0.3)),
+        border: Border.all(color: const Color(0xFF333333)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Center(
             child: Text(
-              "Agriculture - $crop",
+              "${_l10n.agriculture} - ${_getCropTranslation(crop)}",
               style: const TextStyle(
-                color: Colors.black,
+                color: Colors.white,
                 fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
@@ -122,8 +143,8 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
           const SizedBox(height: 10),
           Center(
             child: Text(
-              "Sol : ${widget.soilType}",
-              style: const TextStyle(color: Colors.black87),
+              "${_l10n.soil} : ${_getSoilTypeTranslation(widget.soilType)}",
+              style: const TextStyle(color: Colors.white70),
             ),
           ),
           const SizedBox(height: 15),
@@ -142,7 +163,7 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      day["day"] as String,
+                      _getDayName(day["day"] as String),
                       style: const TextStyle(color: Colors.white),
                     ),
                     Row(
@@ -157,7 +178,7 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
                     ),
                     Text(
                       "${day["temp"]} / ${day["min"]}",
-                      style: const TextStyle(color: Colors.black87),
+                      style: const TextStyle(color: Colors.white70),
                     ),
                   ],
                 ),
@@ -191,15 +212,15 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.15),
+              color: const Color(0xFF2A2A2A),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.black, width: 1),
+              border: Border.all(color: const Color(0xFF444444), width: 1),
             ),
             child: Text(
-              "Conseil IA pour $crop :\n$recommendation",
+              "${_l10n.aiAdviceFor} ${_getCropTranslation(crop)} :\n$recommendation",
               textAlign: TextAlign.center,
               style: const TextStyle(
-                color: Colors.black,
+                color: Colors.white,
                 fontWeight: FontWeight.w600,
                 fontSize: 14,
               ),
@@ -218,25 +239,25 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
 
     if (humidity < 30) {
       barColor = Colors.redAccent;
-      status = "Sol sec";
+      status = _l10n.drySoil;
       icon = Icons.warning;
     } else if (humidity < 60) {
       barColor = Colors.orangeAccent;
-      status = "Humidité moyenne";
+      status = _l10n.mediumHumidity;
       icon = Icons.water_drop;
     } else {
       barColor = Colors.greenAccent;
-      status = "Sol humide";
+      status = _l10n.humidSoil;
       icon = Icons.eco;
     }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Humidité du sol",
+        Text(
+          _l10n.soilMoisture,
           style: const TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -292,10 +313,10 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          "Calendrier d’arrosage (IA + météo)",
+        Text(
+          _l10n.wateringCalendar,
           style: const TextStyle(
-            color: Colors.black,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -320,8 +341,8 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
             return Column(
               children: [
                 Text(
-                  (day["day"] as String).substring(0, 3),
-                  style: const TextStyle(color: Colors.black54, fontSize: 12),
+                  _getDayShortName((day["day"] as String)),
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
                 ),
                 const SizedBox(height: 4),
                 Icon(
@@ -331,7 +352,7 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  shouldWater ? "Arrose" : "Repos",
+                  shouldWater ? _l10n.waterToday : _l10n.rest,
                   style: TextStyle(
                     color: shouldWater ? Colors.cyanAccent : Colors.white38,
                     fontSize: 11,
@@ -349,34 +370,93 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
   List<Map<String, dynamic>> _generateWeatherData() {
     final random = Random();
     return [
-      {"day": "Lundi", "temp": "22°", "min": "15°", "rain": random.nextInt(60)},
-      {"day": "Mardi", "temp": "24°", "min": "16°", "rain": random.nextInt(60)},
+      {"day": "monday", "temp": "22°", "min": "15°", "rain": random.nextInt(60)},
+      {"day": "tuesday", "temp": "24°", "min": "16°", "rain": random.nextInt(60)},
       {
-        "day": "Mercredi",
+        "day": "wednesday",
         "temp": "25°",
         "min": "17°",
         "rain": random.nextInt(60),
       },
-      {"day": "Jeudi", "temp": "23°", "min": "15°", "rain": random.nextInt(60)},
+      {"day": "thursday", "temp": "23°", "min": "15°", "rain": random.nextInt(60)},
       {
-        "day": "Vendredi",
+        "day": "friday",
         "temp": "21°",
         "min": "14°",
         "rain": random.nextInt(60),
       },
       {
-        "day": "Samedi",
+        "day": "saturday",
         "temp": "22°",
         "min": "15°",
         "rain": random.nextInt(60),
       },
       {
-        "day": "Dimanche",
+        "day": "sunday",
         "temp": "24°",
         "min": "16°",
         "rain": random.nextInt(60),
       },
     ];
+  }
+
+  // 📅 Obtenir le nom du jour traduit
+  String _getDayName(String dayKey) {
+    switch (dayKey) {
+      case 'monday':
+        return _l10n.monday;
+      case 'tuesday':
+        return _l10n.tuesday;
+      case 'wednesday':
+        return _l10n.wednesday;
+      case 'thursday':
+        return _l10n.thursday;
+      case 'friday':
+        return _l10n.friday;
+      case 'saturday':
+        return _l10n.saturday;
+      case 'sunday':
+        return _l10n.sunday;
+      default:
+        return dayKey;
+    }
+  }
+
+  // 📅 Obtenir le nom court du jour traduit
+  String _getDayShortName(String dayKey) {
+    return _getDayName(dayKey).substring(0, 3);
+  }
+
+  // 🌱 Traduire le type de sol
+  String _getSoilTypeTranslation(String soilType) {
+    switch (soilType.toLowerCase()) {
+      case 'sableux':
+        return _l10n.sandySoil;
+      case 'argileux':
+        return _l10n.claySoil;
+      case 'limoneux':
+        return _l10n.loamySoil;
+      default:
+        return soilType;
+    }
+  }
+
+  // 🌾 Traduire le type de culture
+  String _getCropTranslation(String crop) {
+    switch (crop.toLowerCase()) {
+      case 'olive':
+        return _l10n.olive;
+      case 'blé':
+        return _l10n.wheat;
+      case 'tomate':
+        return _l10n.tomato;
+      case 'fraise':
+        return _l10n.strawberry;
+      case 'maïs':
+        return _l10n.corn;
+      default:
+        return crop;
+    }
   }
 
   // 📊 Widget pour afficher la source des données
@@ -403,8 +483,8 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
           Expanded(
             child: Text(
               isUsingMQTTData
-                  ? "Données capteurs en temps réel${lastUpdate != null ? " (${lastUpdate.hour}:${lastUpdate.minute.toString().padLeft(2, '0')})" : ""}"
-                  : "Cloud vide - Utilisation des valeurs par défaut (0%)",
+                  ? "${_l10n.realTimeData}${lastUpdate != null ? " (${lastUpdate.hour}:${lastUpdate.minute.toString().padLeft(2, '0')})" : ""}"
+                  : _l10n.cloudEmpty,
               style: TextStyle(
                 color: isUsingMQTTData
                     ? Colors.blueAccent
@@ -422,27 +502,23 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
   Widget _buildWateringExplanation(String crop) {
     String text;
     if (crop.toLowerCase().contains("olive")) {
-      text =
-          "L'olivier nécessite peu d'eau : un arrosage léger par semaine suffit.";
+      text = _l10n.oliveWatering;
     } else if (crop.toLowerCase().contains("blé")) {
-      text = "Le blé préfère un sol toujours humide : arrosez chaque jour.";
+      text = _l10n.wheatWatering;
     } else if (crop.toLowerCase().contains("tomate")) {
-      text =
-          "La tomate a besoin d'un arrosage régulier : tous les 2 jours environ.";
+      text = _l10n.tomatoWatering;
     } else if (crop.toLowerCase().contains("fraise")) {
-      text =
-          "Les fraises nécessitent beaucoup d'eau : arrosez quotidiennement.";
+      text = _l10n.strawberryWatering;
     } else if (crop.toLowerCase().contains("maïs")) {
-      text = "Le maïs aime l'humidité : arrosage tous les 3 jours environ.";
+      text = _l10n.cornWatering;
     } else {
-      text =
-          "Arrosage standard : tous les 2 à 3 jours, selon les conditions météo.";
+      text = _l10n.standardWatering;
     }
 
     return Text(
       text,
       textAlign: TextAlign.center,
-      style: const TextStyle(color: Colors.black54, fontSize: 13),
+      style: const TextStyle(color: Colors.white54, fontSize: 13),
     );
   }
 
@@ -456,53 +532,46 @@ class _IrrigationPlanScreenState extends State<IrrigationPlanScreen> {
     bool hasRain = data.any((day) => (day["rain"] as int) > 40);
 
     if (hasRain) {
-      return "Pas d'arrosage prévu cette semaine, la pluie couvrira les besoins en eau.";
+      return _l10n.noWateringNeeded;
     }
 
     String solInfo = "";
     switch (soil.toLowerCase()) {
       case "sableux":
-        solInfo = "Le sol sableux retient peu l'eau.";
+        solInfo = _l10n.sandySoilInfo;
         break;
       case "argileux":
-        solInfo = "Le sol argileux garde bien l'humidité.";
+        solInfo = _l10n.claySoilInfo;
         break;
       case "limoneux":
-        solInfo = "Le sol limoneux est équilibré et fertile.";
+        solInfo = _l10n.loamySoilInfo;
         break;
       default:
-        solInfo = "Sol standard.";
+        solInfo = _l10n.standardSoil;
     }
 
-    String freq = "";
     String besoin = "";
 
     if (crop.toLowerCase().contains("tomate")) {
-      freq = "Arrosez chaque jour ou un jour sur deux.";
-      besoin = "Besoin moyen : 2L/m² par jour.";
+      besoin = _l10n.tomatoNeeds;
     } else if (crop.toLowerCase().contains("blé")) {
-      freq = "Arrosez une fois tous les 4 à 5 jours.";
-      besoin = "Besoin faible : 1L/m².";
+      besoin = _l10n.wheatNeeds;
     } else if (crop.toLowerCase().contains("fraise")) {
-      freq = "Arrosage quotidien recommandé.";
-      besoin = "Besoin élevé : 2.5L/m².";
+      besoin = _l10n.strawberryNeeds;
     } else if (crop.toLowerCase().contains("olive")) {
-      freq = "Arrosez légèrement tous les 5 jours.";
-      besoin = "Besoin faible : 1.5L/m².";
+      besoin = _l10n.oliveNeeds;
     } else if (crop.toLowerCase().contains("maïs")) {
-      freq = "Arrosez tous les 2 à 3 jours.";
-      besoin = "Besoin moyen : 2L/m².";
+      besoin = _l10n.cornNeeds;
     } else {
-      freq = "Arrosage standard : tous les 2-3 jours.";
-      besoin = "2L/m².";
+      besoin = _l10n.standardNeeds;
     }
 
     if (humidity > 75) {
-      return "$solInfo Sol bien humide — reportez l'arrosage.\n$freq ($besoin)";
+      return "$solInfo ${_l10n.soilVeryHumid}\n$besoin";
     } else if (humidity < 40) {
-      return "$solInfo Sol sec — arrosez dès aujourd'hui.\n$freq ($besoin)";
+      return "$solInfo ${_l10n.soilDry}\n$besoin";
     } else {
-      return "$solInfo Sol modérément humide.\n$freq ($besoin)";
+      return "$solInfo ${_l10n.soilModeratelyHumid}\n$besoin";
     }
   }
 }

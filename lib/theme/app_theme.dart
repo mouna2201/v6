@@ -9,7 +9,7 @@ class AppTheme {
       primary: const Color(0xFF2E7D32), // Vert foncé
       secondary: const Color(0xFF66BB6A), // Vert moyen
       surface: Colors.white,
-      background: const Color(0xFFF9FBE7),
+      surfaceContainer: const Color(0xFFF9FBE7),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF2E7D32), // Vert foncé
@@ -65,7 +65,7 @@ class AppTheme {
       primary: const Color(0xFF00897B), // Vert d'eau
       secondary: const Color(0xFF4DB6AC), // Vert d'eau moyen
       surface: Colors.white,
-      background: const Color(0xFFE0F2F1),
+      surfaceContainer: const Color(0xFFE0F2F1),
     ),
     appBarTheme: const AppBarTheme(
       backgroundColor: Color(0xFF00897B), // Vert d'eau
@@ -129,6 +129,62 @@ class AppTheme {
       filled: true,
       fillColor: Colors.white,
       border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+    ),
+  );
+
+  // Thème noir pour l'écran d'irrigation
+  static ThemeData irrigationTheme = ThemeData(
+    primaryColor: const Color(0xFF000000), // Noir
+    scaffoldBackgroundColor: const Color(0xFF000000), // Fond noir
+    colorScheme: ColorScheme.dark(
+      primary: const Color(0xFF000000), // Noir
+      secondary: const Color(0xFF333333), // Gris foncé
+      surface: const Color(0xFF1A1A1A), // Gris très foncé
+      surfaceContainer: const Color(0xFF000000), // Noir
+    ),
+    appBarTheme: const AppBarTheme(
+      backgroundColor: Color(0xFF000000), // Noir
+      foregroundColor: Colors.white,
+      elevation: 3,
+    ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF333333), // Gris foncé
+        foregroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        elevation: 2,
+      ),
+    ),
+    cardTheme: const CardThemeData(
+      color: Color(0xFF1A1A1A), // Gris très foncé
+      elevation: 6,
+      shadowColor: Color(0xFF333333),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.all(Radius.circular(12))),
+    ),
+    textTheme: const TextTheme(
+      titleLarge: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+      titleMedium: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white),
+      bodyMedium: TextStyle(fontSize: 12, color: Colors.white70),
+      bodySmall: TextStyle(fontSize: 10, color: Colors.white54),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: const Color(0xFF1A1A1A), // Gris très foncé
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFF333333), width: 1),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFF333333), width: 1),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: const BorderSide(color: Color(0xFF666666), width: 1),
+      ),
+      labelStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 12),
+      hintStyle: const TextStyle(color: Colors.white54, fontSize: 10),
     ),
   );
 

@@ -7,6 +7,7 @@ import 'theme/app_theme.dart';
 import 'presentation/providers/language_provider.dart';
 import 'services/app_initializer.dart';
 import 'screens/welcome/welcome_screen.dart';
+import 'l10n/app_localizations.dart';
 
 /// Point d'entrée de l'application
 void main() {
@@ -39,6 +40,7 @@ class AgroApp extends ConsumerWidget {
         Locale('ar', ''), // Arabe
       ],
       localizationsDelegates: const [
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
